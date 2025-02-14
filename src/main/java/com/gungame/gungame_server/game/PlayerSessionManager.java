@@ -2,7 +2,6 @@ package com.gungame.gungame_server.game;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gungame.gungame_server.entity.Player;
-import com.gungame.gungame_server.service.PlayerService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -17,11 +16,6 @@ public class PlayerSessionManager {
     private final Map<String, WebSocketSession> players = new ConcurrentHashMap<>();
     private final Map<String, Player> playerStates = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final PlayerService playerService;
-
-    public PlayerSessionManager(PlayerService playerService) {
-        this.playerService = playerService;
-    }
 
     public void addPlayer(WebSocketSession session) {
         int team = (int) (Math.random() * 2) + 1;
@@ -30,20 +24,19 @@ public class PlayerSessionManager {
         players.put(session.getId(), session);
         playerStates.put(session.getId(), newPlayer);
 
-        // Send the Player ID ONLY to the newly connected player
         try {
-            System.out.println("player added");
             Map<String, Object> response = Map.of(
-                "type", "assign_id",  // Custom message type
-                "playerId", newPlayer.getId()
+                    "type", "assign_id",  // 메시지 타입 추가
+                    "playerId", newPlayer.getId()
             );
             String json = objectMapper.writeValueAsString(response);
-            session.sendMessage(new TextMessage(json));
+            session.sendMessage(new TextMessage(json)); // 새로운 플레이어에게 ID 전송
+            System.out.println("Player added: " + newPlayer.getId());
         } catch (Exception e) {
             e.printStackTrace();
         }
-
     }
+
 
 
     public void updatePlayerState(WebSocketSession session, TextMessage message) throws Exception {
@@ -52,9 +45,13 @@ public class PlayerSessionManager {
 
         Player player = playerStates.get(session.getId());
         if (player != null) {
-            playerService.updatePlayerState(player, incomingMessage);
+            player.updateState(incomingMessage);
+        } else {
+            System.out.println("Player not found for session: " + session.getId());
         }
     }
+
+
 
     public void removePlayer(WebSocketSession session) {
         players.remove(session.getId());

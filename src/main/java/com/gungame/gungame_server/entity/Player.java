@@ -4,10 +4,10 @@ import java.util.Map;
 import java.util.UUID;
 
 public class Player {
-    private String id; // UUID-based Player ID
+    private final String id; // UUID-based Player ID
     private int x, y;
     private double angle;
-    private int team;
+    private final int team;
     private Map<String, Boolean> keys;
 
     public Player(int team) {
@@ -19,15 +19,42 @@ public class Player {
         this.keys = Map.of("w", false, "a", false, "s", false, "d", false);
     }
 
-    // Getters and Setters
+    public void updateState(Map<String, Object> state) {
+        if (state.containsKey("x")) {
+            this.x = ((Number) state.get("x")).intValue();
+        }
+        if (state.containsKey("y")) {
+            this.y = ((Number) state.get("y")).intValue();
+        }
+        if (state.containsKey("angle")) {
+            this.angle = ((Number) state.get("angle")).doubleValue();
+        }
+        if (state.containsKey("keys")) {
+            this.keys = (Map<String, Boolean>) state.get("keys");
+        }
+    }
+
+    // 위치 업데이트 로직
+    public void updatePosition() {
+        int speed = 5; // 이동 속도
+        if (keys != null) { // keys가 null이 아닌지 확인
+            if (keys.getOrDefault("w", false)) this.y -= speed;
+            if (keys.getOrDefault("s", false)) this.y += speed;
+            if (keys.getOrDefault("a", false)) this.x -= speed;
+            if (keys.getOrDefault("d", false)) this.x += speed;
+        } else {
+            System.out.println("Keys are null for player: " + id);
+        }
+    }
+
+
+    // Getters
     public String getId() { return id; }
     public int getX() { return x; }
-    public void setX(int x) { this.x = x; }
     public int getY() { return y; }
-    public void setY(int y) { this.y = y; }
     public double getAngle() { return angle; }
-    public void setAngle(double angle) { this.angle = angle; }
     public int getTeam() { return team; }
     public Map<String, Boolean> getKeys() { return keys; }
-    public void setKeys(Map<String, Boolean> keys) { this.keys = keys; }
+
+    // 기타 유틸리티 메서드 추가 가능
 }

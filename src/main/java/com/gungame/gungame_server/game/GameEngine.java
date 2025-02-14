@@ -37,21 +37,13 @@ public class GameEngine {
         }).start();
     }
 
-    private void updatePlayerPosition(Player player) {
-        int speed = 5;
-        Map<String, Boolean> keys = player.getKeys();
-
-        if (keys.getOrDefault("w", false)) player.setY(player.getY() - speed);
-        if (keys.getOrDefault("s", false)) player.setY(player.getY() + speed);
-        if (keys.getOrDefault("a", false)) player.setX(player.getX() - speed);
-        if (keys.getOrDefault("d", false)) player.setX(player.getX() + speed);
-    }
-
+    // 게임 상태 브로드캐스트
     public void broadcastGameState() {
         try {
-            // Create a mutable ConcurrentHashMap for thread-safe operations
             Map<String, Object> gameState = new ConcurrentHashMap<>();
+            gameState.put("type", "update"); // 메시지 타입 지정
             gameState.put("players", sessionManager.getPlayerStates());
+
             String gameStateJson = objectMapper.writeValueAsString(gameState);
 
             for (WebSocketSession session : sessionManager.getSessions()) {
@@ -65,4 +57,37 @@ public class GameEngine {
             e.printStackTrace();
         }
     }
+
+    // 새 플레이어 추가 후 상태 브로드캐스트
+    public void addPlayer(WebSocketSession session) {
+        sessionManager.addPlayer(session); // PlayerSessionManager를 통해 플레이어 추가
+
+        // assign_id 메시지를 추가된 플레이어에게 전송
+        Player newPlayer = sessionManager.getPlayerStates().get(session.getId());
+        if (newPlayer != null) {
+            try {
+                Map<String, Object> response = Map.of(
+                        "type", "assign_id",
+                        "playerId", newPlayer.getId()
+                );
+                String json = objectMapper.writeValueAsString(response);
+                session.sendMessage(new TextMessage(json)); // ID 전송
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        broadcastGameState(); // 전체 상태 브로드캐스트
+    }
+
+    // 플레이어 제거 후 상태 브로드캐스트
+    public void removePlayer(WebSocketSession session) {
+        sessionManager.removePlayer(session); // PlayerSessionManager를 통해 플레이어 제거
+        broadcastGameState(); // 전체 상태 브로드캐스트
+    }
+
+    private void updatePlayerPosition(Player player) {
+        player.updatePosition();
+    }
+
 }

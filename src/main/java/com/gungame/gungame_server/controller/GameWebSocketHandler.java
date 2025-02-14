@@ -21,14 +21,16 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        // Log when a WebSocket connection is established
         System.out.println("WebSocket connection established: " + session.getId());
-        
-        // Add a new player to the session manager and broadcast the updated game state
-        sessionManager.addPlayer(session);
-        
-        gameEngine.broadcastGameState();
+        gameEngine.addPlayer(session); // GameEngine에 플레이어 추가
     }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        System.out.println("WebSocket connection closed: " + session.getId());
+        gameEngine.removePlayer(session); // GameEngine에서 플레이어 제거
+    }
+
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
@@ -38,24 +40,6 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             // Log any exceptions to ensure the WebSocket session remains stable
             System.err.println("Error processing message from session: " + session.getId());
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        // Log when a WebSocket connection is closed
-        System.out.println("WebSocket connection closed: " + session.getId() + " with status: " + status);
-
-        // Remove the player from the session manager
-        sessionManager.removePlayer(session);
-
-        // Broadcast the updated game state after player removal
-        try {
-            gameEngine.broadcastGameState();
-        } catch (Exception e) {
-            // Log any exceptions during broadcasting
-            System.err.println("Error broadcasting game state after closing session: " + session.getId());
             e.printStackTrace();
         }
     }
